@@ -19,13 +19,39 @@ from dataclasses import dataclass
 from typing import Optional, Dict, Any, List
 from dotenv import load_dotenv
 
-# Streamlit required for this version
-
-import streamlit as st 
-
 # Load env vars from .env file
 
 load_dotenv()
+
+# Streamlit required for this version
+
+import streamlit as st
+
+
+st.markdown("🔑 Please enter your API keys to continue:")
+
+# Input fields for API keys (hidden as password)
+openai_key = st.text_input("OpenAI API Key", type="password")
+google_key = st.text_input("Google API Key", type="password")
+groq_key = st.text_input("Groq API Key", type="password")
+hf_key = st.text_input("HuggingFace API Key", type="password")
+
+# Save them into environment variables if provided
+if openai_key:
+    os.environ["OPENAI_API_KEY"] = openai_key
+if google_key:
+    os.environ["GOOGLE_API_KEY"] = google_key
+if groq_key:
+    os.environ["GROQ_API_KEY"] = groq_key
+if hf_key:
+    os.environ["HF_API_KEY"] = hf_key
+
+# Simple warning if no keys provided
+if not (openai_key or google_key or groq_key or hf_key):
+    st.warning("⚠️ Please enter your API keys above to use the chatbot.")
+
+
+
 
 # Optional client imports (can be None in dev)
 
@@ -183,14 +209,16 @@ class GroqProvider:
 
 class StableDiffusionProvider:
     def image_generate(self, prompt: str) -> ProviderResponse:
-        if not HF_API_KEY:
+        key = os.getenv("HF_API_KEY")       # fetch at runtime
+        if not key:
             raise RuntimeError("Missing HF_API_KEY")
         url = f"https://api-inference.huggingface.co/models/{STABLE_DIFFUSION_MODEL}"
-        headers = {"Authorization": f"Bearer {HF_API_KEY}"}
+        headers = {"Authorization": f"Bearer {key}"}
         resp = requests.post(url, headers=headers, json={"inputs": prompt})
         if resp.status_code != 200:
             raise RuntimeError(f"HF API error: {resp.text}")
         return ProviderResponse(image_bytes=resp.content)
+
 
 # -------------------------
 # Factory
